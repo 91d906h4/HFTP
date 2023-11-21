@@ -2,6 +2,7 @@
 import socket
 
 from src._cli import cli
+from src._crypto import *
 from src._handshake import handshake
 
 params = cli()
@@ -9,6 +10,7 @@ HOST = params["host"]
 PORT = params["port"]
 
 try:
+    # Create socket.
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.connect((HOST, PORT))
 
@@ -18,19 +20,21 @@ except Exception as e:
 
     exit(-1)
 
-handshake(server_socket)
+# Server handshake.
+server_public_key = handshake(server_socket)
 
 while True:
     try:
         filename = input('Input filename you want to send: ')
-        fi = open(filename, "r")
-        data = fi.read()
-        if not data:
-            break
-        server_socket.send(str(len(data)).encode())
-        server_socket.send(str(data).encode())
-        server_socket.send("EOF".encode())
-        fi.close()
+
+        f = open(filename, "rb")
+        data = f.read()
+
+        if not data: continue
+
+        encrypt_send(server_socket, data, server_public_key)
+
+        f.close()
     
     except KeyboardInterrupt: break
     except: continue

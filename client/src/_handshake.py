@@ -1,29 +1,45 @@
 # Import modules.
-import rsa
 import socket
 
+from ._crypto import *
 from ._error import error
-from ._crypto import crypt
+from ._utils import get_time
 
-class PK:
-    def __init__(self, n, e) -> None:
-        self.n = ""
-        self.e = ""
-
-def handshake(server_socket: socket.socket) -> None:
+def handshake(server_socket: socket.socket) -> str:
     # Get welcome message.
+    print(f"[{get_time()}] <<< Get \"Welcome message\".")
     welcome_message = server_socket.recv(1024).decode()
     if not welcome_message: error(code="001", end=True)
+    else: print(welcome_message)
 
     # Get server RSA public key.
+    print(f"[{get_time()}] <<< Get Server RSA public key.")
     server_public_key = server_socket.recv(1024).decode()
 
-    n, e = server_public_key[10:-1].split(", ")
-    print(server_public_key)
-    server_public_key = rsa.PublicKey(int(n), int(e))
-
     # Generate RSA Keypair.
-    CRYPTER = crypt(1024)
+    generate_keypair(1024)
+    client_public_key = open("./keys/public_key.pem").read()
+    client_private_key = open("./keys/private_key.pem").read()
 
     # Send RSA public key.
-    server_socket.send(CRYPTER.encrypt(str(CRYPTER.private_key).encode(), server_public_key))
+    print(f"[{get_time()}] >>> Send RSA public key.")
+    encrypt_send(server_socket, client_public_key.encode(), server_public_key)
+
+    # Get random number.
+    print(f"[{get_time()}] <<< Recieved random number.")
+    ans = decrypt_receive(server_socket, client_private_key)
+
+    # Send back random number.
+    print(f"[{get_time()}] >>> Send random number.")
+    server_socket.send(str(ans).encode())
+
+    # Get accept/denined message.
+    response = server_socket.recv(1024).decode()
+    if not response.startswith("201"):
+        print(f"[{get_time()}] <<< Connection denied.")
+        print("Server denied the connection. Please try again later.")
+        exit(-1)
+    else:
+        print(f"[{get_time()}] <<< Connection accepted.")
+
+    return server_public_key

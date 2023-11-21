@@ -2,7 +2,7 @@
 import socket
 import threading
 
-from src._handshake import handshake
+from src.index import index
 
 try:
     # Create socket.
@@ -21,19 +21,6 @@ except Exception as e:
     print(str(e))
 
     exit(-1)
-
-# Server index.
-def index(client_connection: socket.socket, client_address: str) -> None:
-    handshake(client_connection)
-
-    request = "any"
-
-    while request:
-        request = client_connection.recv(1024).decode()
-        print(request)
-
-    # Close connection.
-    client_connection.close()
 
 # Run server.
 while True:
