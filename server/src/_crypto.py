@@ -34,18 +34,18 @@ def encrypt_send(sockets: socket.socket, data: bytes, public_key: str) -> bool:
     return True
 
 def decrypt_receive(sockets: socket.socket, private_key: str, decode: bool=True) -> str|bytes:
-    temp = bytearray()
+    data = bytearray()
     offset = 0
     chunck = 128
 
     if decode: result = ""
     else: result = bytearray()
 
-    while "EOF" not in str(temp): temp += sockets.recv(1024)
-    temp = temp[:-3]
+    while "EOF" not in str(data): data += sockets.recv(1024)
+    data = data[:-3]
 
-    while offset < len(temp):
-        d = crypt().decrypt(temp[offset:offset+chunck], private_key)
+    while offset < len(data):
+        d = crypt().decrypt(data[offset:offset+chunck], private_key)
 
         if decode: result += d.decode()
         else: result += d

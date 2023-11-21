@@ -6,6 +6,7 @@ from src._handshake import handshake
 
 # Server index.
 def index(client_connection: socket.socket, client_address: str) -> None:
+    # Handshake.
     client_public_key = handshake(client_connection)
 
     server_public_key = open("./keys/public_key.pem").read()
@@ -14,8 +15,10 @@ def index(client_connection: socket.socket, client_address: str) -> None:
     request = "any"
 
     while request:
-        request = decrypt_receive(client_connection, server_private_key, decode=True)
-        print(request)
+        header = decrypt_receive(client_connection, server_private_key, decode=True)
+        print("command", header)
+        data = decrypt_receive(client_connection, server_private_key, decode=True)
+        print("data", data)
 
     # Close connection.
     client_connection.close()
