@@ -15,7 +15,7 @@ class crypt:
 def generate_keypair(bits: int=2048) -> None:
     public_key, private_key = rsa.newkeys(bits)
 
-    if not os.path.exists("./keys/public_key.pem"):
+    if not os.path.exists("../keys/public_key.pem"):
         with open("./keys/public_key.pem", "wb") as f: f.write(public_key.save_pkcs1("PEM"))
         with open("./keys/private_key.pem", "wb") as f: f.write(private_key.save_pkcs1("PEM"))
 
