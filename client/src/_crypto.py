@@ -1,4 +1,5 @@
 # Import modules.
+import os
 import rsa
 import socket
 
@@ -14,8 +15,9 @@ class crypt:
 def generate_keypair(bits: int=2048) -> None:
     public_key, private_key = rsa.newkeys(bits)
 
-    with open("./keys/public_key.pem", "wb") as f: f.write(public_key.save_pkcs1("PEM"))
-    with open("./keys/private_key.pem", "wb") as f: f.write(private_key.save_pkcs1("PEM"))
+    if not os.path.exists("./keys/public_key.pem"):
+        with open("./keys/public_key.pem", "wb") as f: f.write(public_key.save_pkcs1("PEM"))
+        with open("./keys/private_key.pem", "wb") as f: f.write(private_key.save_pkcs1("PEM"))
 
 def encrypt_send(sockets: socket.socket, data: bytes, public_key: str) -> bool:
     offset = 0
