@@ -3,8 +3,8 @@ import os
 import sys
 import socket
 
+from ._utils import *
 from time import sleep
-from ._utils import get_time
 
 from ._crypto import *
 
@@ -23,6 +23,8 @@ def get_param() -> dict:
     return params
 
 def cli(server_address: str, server_socket: socket.socket, server_public_key: str) -> None:
+    PWD = "/"
+
     client_private_key = open("./keys/private_key.pem").read()
 
     while True:
@@ -32,30 +34,94 @@ def cli(server_address: str, server_socket: socket.socket, server_public_key: st
 
             match command[0]:
                 case "help":
-                    print(f"help\tShow this help message.")
+                    help_message(command)
+
+                case "pwd":
+                    print(f"{PWD}")
+
+                case "ls":
+                    # Send Header.
+                    header = str(f"LS {PWD}")
+                    encrypt_send(server_socket, header.encode(), server_public_key)
+
+                    # Get response.
+                    response = decrypt_receive(server_socket, client_private_key, decode=True)
+                    print(f"{response}")
+
+                case "cd":
+                    # Send Header.
+                    header = str(f"CD {command[1]}")
+                    encrypt_send(server_socket, header.encode(), server_public_key)
+
+                    # Get response.
+                    response = decrypt_receive(server_socket, client_private_key, decode=True)
+                    
+                    if response.startswith("201"):
+                        if command[1] == "..": PWD = PWD[:PWD.rindex("/") + 1]
+                        else: PWD += command[1]
 
                 case "sendf":
-                    if not os.path.isfile(command[1]):
+                    if not os.path.isfile("./data" + PWD + command[1]):
                         print(f"File \"{command[1]}\" not found.")
-                    else:
-                        print(f"Send file \"{command[1]}\" to server {server_address}...")
+                        continue
+
+                    print(f"Send file \"{command[1]}\" to server {server_address}...")
+
+                    # Send Header.
+                    header = str(f"SEND {command[1]}")
+                    encrypt_send(server_socket, header.encode(), server_public_key)
+
+                    # Wait.
+                    sleep(0.1)
+
+                    # Send data.
+                    encrypt_send(server_socket, open("./data" + PWD + command[1], "rb").read(), server_public_key)
+
+                    # Get response.
+                    response = decrypt_receive(server_socket, client_private_key, decode=True)
+                    response = response.split()
+
+                    # Response code handler.
+                    match response[0]:
+                        case "202": print(f"[{get_time()}] <<< File received.")
+                        case "304":
+                            print(f"[{get_time()}] <<< Permission denied.")
+                            print(f"Are you logged in?")
+                        case _: print(f"[{get_time()}] <<< Failed to received file.")
+
+                case "sendd":
+                    if not os.path.isdir("./data" + PWD + command[1]):
+                        print(f"Directory \"{command[1]}\" not found.")
+                        continue
+
+                    for filename in os.listdir("./data" + PWD + command[1]):
+                        filename = command[1] + "/" + filename
+
+                        print(f"Send file \"{filename}\" to server {server_address}...")
 
                         # Send Header.
-                        header = str(f"SEND {command[1]}")
+                        header = str(f"SEND {filename}")
                         encrypt_send(server_socket, header.encode(), server_public_key)
 
                         # Wait.
                         sleep(0.1)
 
                         # Send data.
-                        encrypt_send(server_socket, open(command[1], "rb").read(), server_public_key)
+                        encrypt_send(server_socket, open("./data" + PWD + filename, "rb").read(), server_public_key)
 
                         # Get response.
                         response = decrypt_receive(server_socket, client_private_key, decode=True)
-                        if response.startswith("202"):
-                            print(f"[{get_time()}] <<< File received.")
-                        else:
-                            print(f"[{get_time()}] <<< Failed to received file.")
+                        response = response.split()
+
+                        # Response code handler.
+                        match response[0]:
+                            case "202": print(f"[{get_time()}] <<< File received.")
+                            case "304":
+                                print(f"[{get_time()}] <<< Permission denied.")
+                                print(f"Are you logged in?")
+                                # Break files iteration.
+                                break
+                            case _: print(f"[{get_time()}] <<< Failed to received file.")
 
                 case "login":
                     username, password = command[1:3]
@@ -67,10 +133,14 @@ def cli(server_address: str, server_socket: socket.socket, server_public_key: st
 
                     # Get response.
                     response = decrypt_receive(server_socket, client_private_key, decode=True)
-                    if response.startswith("204"):
-                        print(f"[{get_time()}] <<< Login successfully.")
-                    else:
-                        print(f"[{get_time()}] <<< Permission denied.")
+                    response = response.split()
+
+                    match response[0]:
+                        case "204": print(f"[{get_time()}] <<< Login successfully.")
+                        case "305": print(f"[{get_time()}] <<< Already logged in.")
+                        case _:
+                            print(f"[{get_time()}] <<< Permission denied.")
+                            break
 
                 case _:
                     print(f"Command \"{command[0]}\" not found.")

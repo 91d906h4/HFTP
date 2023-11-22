@@ -1,7 +1,9 @@
 {
     "admin": {
         "password": "password",
-        "permission": "full",
-        "expire": ""
+        "permission": "full"
+    },
+    "asd": {
+        "password": "asd"
     }
 }
