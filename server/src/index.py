@@ -3,6 +3,8 @@ import os
 import json
 import socket
 
+from time import sleep
+
 from src._crypto import *
 from src._utils import get_time
 from src._handshake import handshake
@@ -49,20 +51,47 @@ def index(client_connection: socket.socket, client_address: str) -> None:
                     print(f"failed to receive file \"{header[1]}\".")
                     encrypt_send(client_connection, "302 Failed to receive file.".encode(), client_public_key)
 
+            case "GET":
+                if not os.path.isfile("./data" + str(header[1])):
+                    encrypt_send(client_connection, "304 Permission denied.".encode(), client_public_key)
+                    continue
+
+                encrypt_send(client_connection, "201 OK.".encode(), client_public_key)
+
+                # Wait.
+                sleep(0.1)
+
+                try:
+                    encrypt_send(client_connection, open("./data" + str(header[1]), "rb").read(), client_public_key)
+                except Exception as e:
+                    # If there's an error, send nothing to client.
+                    encrypt_send(client_connection, str(e).encode(), client_public_key)
+
             case "LS":
                 temp = ""
                 for file in os.listdir("./data/" + PWD):
-                    temp += PWD + file + "\n"
+                    temp += PWD + ("/" if PWD != "/" else "") + file + "\n"
                 temp = temp[:-1]
 
                 encrypt_send(client_connection, temp.encode(), client_public_key)
 
             case "CD":
-                if PWD == "/" and header[1] in "..": header[1] = ""
+                temp = PWD.split("/")
+                temp = [x for x in temp if x.strip() != '']
+                header[1] = header[1].replace("/", "")
 
-                if os.path.exists("./data/" + PWD + header[1]):
-                    PWD += header[1]
-                    encrypt_send(client_connection, "201 OK".encode(), client_public_key)
+                match header[1]:
+                    case "..":
+                        if len(temp) > 0: temp = temp[:-1]
+                    case ".": pass
+                    case _: temp.append(header[1])
+
+                temp = [x for x in temp if x.strip() != '']
+                temp = "/" + "/".join(temp)
+
+                if os.path.exists("./data/" + temp):
+                    PWD = temp
+                    encrypt_send(client_connection, f"201 {PWD}".encode(), client_public_key)
                 else:
                     encrypt_send(client_connection, "304 Permission denined".encode(), client_public_key)
 

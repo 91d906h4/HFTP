@@ -24,7 +24,7 @@ def encrypt_send(sockets: socket.socket, data: bytes, public_key: str) -> bool:
     chunck = 117
 
     while offset < len(data):
-        temp = crypt().encrypt(data[offset:offset + chunck], public_key)
+        temp = crypt().encrypt(data[offset:offset+chunck], public_key)
         sockets.send(temp)
 
         offset += chunck

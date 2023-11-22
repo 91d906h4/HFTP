@@ -24,7 +24,7 @@ def encrypt_send(sockets: socket.socket, data: bytes, public_key: str) -> bool:
     chunck = 117
 
     while offset < len(data):
-        temp = crypt().encrypt(data[offset:offset + chunck], public_key)
+        temp = crypt().encrypt(data[offset:offset+chunck], public_key)
         sockets.send(temp)
 
         offset += chunck
@@ -45,7 +45,10 @@ def decrypt_receive(sockets: socket.socket, private_key: str, decode: bool=True)
     data = data[:-3]
 
     while offset < len(data):
-        d = crypt().decrypt(data[offset:offset+chunck], private_key)
+        try:
+            d = crypt().decrypt(data[offset:offset+chunck], private_key)
+        except Exception as e:
+            print(str(e))
 
         if decode: result += d.decode()
         else: result += d

@@ -55,10 +55,36 @@ def cli(server_address: str, server_socket: socket.socket, server_public_key: st
 
                     # Get response.
                     response = decrypt_receive(server_socket, client_private_key, decode=True)
-                    
-                    if response.startswith("201"):
-                        if command[1] == "..": PWD = PWD[:PWD.rindex("/") + 1]
-                        else: PWD += command[1]
+                    response = response.split()
+
+                    # Response code handler.
+                    match response[0]:
+                        # If "cd" command executed successfully, then update PWD.
+                        case "201": PWD = response[1]
+                        case _: print(f"[{get_time()}] <<< Permission denied.")
+
+                case "get":
+                    # Send Header.
+                    header = str(f"GET {PWD + "/" + command[1]}")
+                    encrypt_send(server_socket, header.encode(), server_public_key)
+
+                    # Get response.
+                    response = decrypt_receive(server_socket, client_private_key, decode=True)
+                    response = response.split()
+
+                    # Response code handler.
+                    match response[0]:
+                        # If "cd" command executed successfully, then update PWD.
+                        case "201":
+                            print(f"[{get_time()}] <<< Received file.")
+                            # Get file contents.
+                            with open("./data/" + PWD + "/" + command[1], "wb") as f:
+                                data = decrypt_receive(server_socket, client_private_key, decode=False)
+                                f.write(data)
+
+                        case _:
+                            print(f"[{get_time()}] <<< Permission denied.")
+                            decrypt_receive(server_socket, client_private_key, decode=True)
 
                 case "sendf":
                     if not os.path.isfile("./data" + PWD + command[1]):
