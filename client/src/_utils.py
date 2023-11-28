@@ -6,8 +6,10 @@ def get_time() -> str:
 
 def help_message(command: list) -> None:
     if len(command) == 1:
+        print(f"get\tDownload file from server.")
         print(f"help\tShow this help message.")
         print(f"login\tLogin to server.")
+        print(f"ls\tList files.")
         print(f"pwd\tShow current path.")
         print(f"sendd\tSend all files in folder to server.")
         print(f"sendf\tSend the specified file to server.")
